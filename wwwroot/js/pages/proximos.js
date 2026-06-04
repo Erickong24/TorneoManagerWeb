@@ -6,7 +6,7 @@ window.proximosPage = {
         container.innerHTML = `
             <div class="page-header">
                 <h1>Próximos Partidos</h1>
-                <p>Partidos programados en los próximos 7 días en todos los torneos</p>
+                <p>Todos los partidos programados y pendientes por jugar</p>
             </div>
             
             <div id="proximos-container">
@@ -32,18 +32,14 @@ window.proximosPage = {
             for (const t of torneosActivos) {
                 try {
                     const partidos = await api.get(`/partidos/torneo/${t.idTorneo}`);
-                    // Filtrar solo los programados con fecha en el futuro (y hasta 7 días)
+                    // Filtrar todos los programados con fecha en el futuro (sin límite de días)
                     const now = new Date();
                     now.setHours(0, 0, 0, 0); // Desde inicio del día actual
-                    
-                    const nextWeek = new Date();
-                    nextWeek.setDate(now.getDate() + 7);
-                    nextWeek.setHours(23, 59, 59, 999);
 
                     const proximos = partidos.filter(p => {
                         if (p.estado !== 'PROGRAMADO' || !p.fecha) return false;
                         const pDate = new Date(p.fecha);
-                        return pDate >= now && pDate <= nextWeek;
+                        return pDate >= now; // Se muestran todos los futuros
                     }).map(p => ({ ...p, _nombreTorneo: t.nombre })); // Agregamos el nombre del torneo para mostrarlo
 
                     todosLosPartidos = todosLosPartidos.concat(proximos);
@@ -56,7 +52,7 @@ window.proximosPage = {
             todosLosPartidos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
             if (todosLosPartidos.length === 0) {
-                UI.showEmptyState(container, 'No hay partidos programados para los próximos 7 días', '📅');
+                UI.showEmptyState(container, 'No hay partidos programados pendientes', '📅');
                 return;
             }
 
