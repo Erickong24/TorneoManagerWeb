@@ -184,6 +184,7 @@ window.reportesPage = {
                             <th>Partidos Suspendidos</th>
                             <th>Partidos Cumplidos</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -199,6 +200,9 @@ window.reportesPage = {
                                         ${r.partidosCumplidos >= r.partidosSuspendidos ? 'CUMPLIDA' : 'ACTIVA'}
                                     </span>
                                 </td>
+                                <td>
+                                    <button class="btn btn-sm btn-ghost btn-apelacion" data-id="${r.idSancion}" data-nombre="${r.nombreJugador}">⚖️ Apelaciones</button>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -208,9 +212,143 @@ window.reportesPage = {
             html += '</table></div>';
             container.innerHTML = html;
 
+            if (tipo === 'sancionados') {
+                document.querySelectorAll('.btn-apelacion').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idSancion = parseInt(e.currentTarget.getAttribute('data-id'));
+                        const nombre = e.currentTarget.getAttribute('data-nombre');
+                        this.showApelacionesModal(idSancion, nombre);
+                    });
+                });
+            }
+
         } catch (error) {
             UI.showEmptyState(container, 'Error cargando datos del reporte', '❌');
             UI.toast('Error cargando reporte', 'error');
+        }
+    },
+
+    async showApelacionesModal(idSancion, nombreJugador) {
+        try {
+            const apelaciones = await api.get(`/apelaciones/sancion/${idSancion}`);
+            const tienePendiente = apelaciones.some(a => a.estado === 'PENDIENTE');
+
+            const renderContent = () => {
+                return `
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <div>
+                            <h4 style="margin-bottom:10px; border-bottom:2px solid var(--accent-primary); padding-bottom:6px;">Historial de Apelaciones</h4>
+                            <div style="display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto;">
+                                ${apelaciones.length === 0 ? `
+                                    <p style="color:var(--text-muted); font-size:13px; text-align:center;">No hay apelaciones previas para esta sanción.</p>
+                                ` : apelaciones.map(a => `
+                                    <div class="card" style="padding:12px; background:var(--bg-secondary);">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                            <span class="badge ${a.estado === 'APROBADA' ? 'badge-success' : a.estado === 'RECHAZADA' ? 'badge-danger' : 'badge-warning'}">
+                                                ${a.estado}
+                                            </span>
+                                            <small style="color:var(--text-muted)">ID: ${a.idApelacion}</small>
+                                        </div>
+                                        <p style="font-size:13px;"><strong>Motivo:</strong> ${a.motivo || 'No especificado'}</p>
+                                        ${a.respuesta ? `<p style="font-size:13px; margin-top:4px; color:var(--accent-primary)"><strong>Respuesta:</strong> ${a.respuesta}</p>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        ${tienePendiente ? `
+                            <!-- Resolver Apelación Pendiente -->
+                            <div class="card" style="padding: 14px; border: 1px solid var(--border-strong);">
+                                <h4 style="margin-bottom:10px; font-size:14px; color: var(--accent-primary);">⚖️ Resolver Apelación Pendiente</h4>
+                                <form id="form-resolver-apelacion" onsubmit="return false;">
+                                    <input type="hidden" id="ap-resolver-id" value="${apelaciones.find(a => a.estado === 'PENDIENTE').idApelacion}">
+                                    <div class="form-group">
+                                        <label class="form-label">Resolución *</label>
+                                        <select id="ap-resolver-estado" class="form-control" required>
+                                            <option value="APROBADA">APROBAR (Quita o reduce sanción)</option>
+                                            <option value="RECHAZADA">RECHAZAR (Mantiene sanción)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Comentarios / Respuesta *</label>
+                                        <textarea id="ap-resolver-respuesta" class="form-control" rows="2" placeholder="Ej: Se reduce la suspensión tras revisar el reporte de video..." required></textarea>
+                                    </div>
+                                    <button class="btn btn-sm btn-success" id="btn-resolver-apelacion" style="width:100%; justify-content:center;">Resolver Apelación</button>
+                                </form>
+                            </div>
+                        ` : `
+                            <!-- Registrar Nueva Apelación -->
+                            <div class="card" style="padding: 14px; border: 1px solid var(--border-strong);">
+                                <h4 style="margin-bottom:10px; font-size:14px; color: var(--accent-primary);">✍️ Presentar Nueva Apelación</h4>
+                                <form id="form-nueva-apelacion" onsubmit="return false;">
+                                    <div class="form-group">
+                                        <label class="form-label">Motivo de la Apelación *</label>
+                                        <textarea id="ap-motivo" class="form-control" rows="2" placeholder="Escribe el motivo o descargo del jugador..." required></textarea>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" id="btn-nueva-apelacion" style="width:100%; justify-content:center;">Enviar Apelación</button>
+                                </form>
+                            </div>
+                        `}
+                    </div>
+                `;
+            };
+
+            const setupModalListeners = () => {
+                const btnNueva = document.getElementById('btn-nueva-apelacion');
+                if (btnNueva) {
+                    btnNueva.addEventListener('click', async () => {
+                        const form = document.getElementById('form-nueva-apelacion');
+                        if (!form.reportValidity()) return;
+
+                        const data = {
+                            idSancion: idSancion,
+                            motivo: document.getElementById('ap-motivo').value
+                        };
+
+                        try {
+                            await api.post('/apelaciones', data);
+                            UI.toast('Apelación registrada exitosamente', 'success');
+                            this.showApelacionesModal(idSancion, nombreJugador); // recargar modal
+                            this.loadReporte('sancionados'); // recargar reporte
+                        } catch (error) {
+                            UI.toast(`Error: ${error.message}`, 'error');
+                        }
+                    });
+                }
+
+                const btnResolver = document.getElementById('btn-resolver-apelacion');
+                if (btnResolver) {
+                    btnResolver.addEventListener('click', async () => {
+                        const form = document.getElementById('form-resolver-apelacion');
+                        if (!form.reportValidity()) return;
+
+                        const idApelacion = parseInt(document.getElementById('ap-resolver-id').value);
+                        const data = {
+                            idApelacion: idApelacion,
+                            idSancion: idSancion,
+                            estado: document.getElementById('ap-resolver-estado').value,
+                            respuesta: document.getElementById('ap-resolver-respuesta').value
+                        };
+
+                        try {
+                            await api.put(`/apelaciones/${idApelacion}`, data);
+                            UI.toast('Resolución guardada y aplicada en BD', 'success');
+                            this.showApelacionesModal(idSancion, nombreJugador); // recargar modal
+                            this.loadReporte('sancionados'); // recargar reporte
+                        } catch (error) {
+                            UI.toast(`Error: ${error.message}`, 'error');
+                        }
+                    });
+                }
+            };
+
+            UI.showModal(`Apelaciones de Sanción - ${nombreJugador}`, renderContent(), [
+                { text: 'Cerrar', class: 'btn-ghost' }
+            ]);
+            setupModalListeners();
+
+        } catch (error) {
+            UI.toast(`Error: ${error.message}`, 'error');
         }
     }
 };

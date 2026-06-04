@@ -1,33 +1,33 @@
-/* ===== TorneoManager Web — Premium Dark Theme ===== */
+/* ===== TorneoManager Web — Premium Minimalist Green & White Light Theme ===== */
 :root {
     /* Core palette */
-    --bg-primary: hsl(220, 20%, 8%);
-    --bg-secondary: hsl(220, 22%, 12%);
-    --bg-card: hsl(220, 20%, 14%);
-    --bg-card-hover: hsl(220, 20%, 18%);
-    --bg-input: hsl(220, 20%, 10%);
-    --bg-sidebar: hsl(225, 28%, 11%);
+    --bg-primary: hsl(0, 0%, 98%);
+    --bg-secondary: hsl(0, 0%, 100%);
+    --bg-card: hsl(0, 0%, 100%);
+    --bg-card-hover: hsl(120, 10%, 97%);
+    --bg-input: hsl(0, 0%, 97%);
+    --bg-sidebar: hsl(140, 20%, 98%);
 
     /* Accent colors */
-    --accent-primary: hsl(210, 100%, 55%);
-    --accent-primary-glow: hsla(210, 100%, 55%, 0.3);
-    --accent-success: hsl(160, 80%, 45%);
-    --accent-warning: hsl(40, 95%, 55%);
-    --accent-danger: hsl(0, 80%, 60%);
-    --accent-purple: hsl(270, 70%, 60%);
+    --accent-primary: hsl(150, 80%, 30%); /* Verde premium */
+    --accent-primary-glow: hsla(150, 80%, 30%, 0.15);
+    --accent-success: hsl(150, 75%, 35%);
+    --accent-warning: hsl(38, 92%, 50%);
+    --accent-danger: hsl(350, 75%, 48%);
+    --accent-purple: hsl(160, 50%, 45%);
 
     /* Text */
-    --text-primary: hsl(220, 15%, 90%);
-    --text-secondary: hsl(220, 10%, 60%);
-    --text-muted: hsl(220, 10%, 40%);
+    --text-primary: hsl(210, 25%, 12%);
+    --text-secondary: hsl(210, 15%, 35%);
+    --text-muted: hsl(210, 10%, 55%);
 
     /* Borders */
-    --border-subtle: hsla(220, 15%, 30%, 0.5);
-    --border-strong: hsla(220, 15%, 40%, 0.5);
+    --border-subtle: hsla(0, 0%, 85%, 0.6);
+    --border-strong: hsla(150, 80%, 30%, 0.3);
 
     /* Glass */
-    --glass-bg: hsla(220, 20%, 16%, 0.7);
-    --glass-border: hsla(220, 30%, 50%, 0.15);
+    --glass-bg: hsla(0, 0%, 100%, 0.85);
+    --glass-border: hsla(0, 0%, 0%, 0.08);
 
     /* Sidebar */
     --sidebar-width: 260px;
@@ -45,9 +45,9 @@
     --radius-xl: 24px;
 
     /* Shadows */
-    --shadow-sm: 0 1px 3px hsla(0, 0%, 0%, 0.3);
-    --shadow-md: 0 4px 16px hsla(0, 0%, 0%, 0.4);
-    --shadow-lg: 0 8px 32px hsla(0, 0%, 0%, 0.5);
+    --shadow-sm: 0 1px 3px hsla(0, 0%, 0%, 0.05);
+    --shadow-md: 0 4px 16px hsla(0, 0%, 0%, 0.08);
+    --shadow-lg: 0 8px 32px hsla(0, 0%, 0%, 0.1);
     --shadow-glow: 0 0 20px var(--accent-primary-glow);
 }
 
@@ -89,14 +89,14 @@ body {
     font-size: 28px;
     width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+    background: linear-gradient(135deg, var(--accent-primary), hsl(140, 80%, 45%));
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-glow);
 }
 .brand-text {
     font-size: 18px;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+    background: linear-gradient(135deg, var(--accent-primary), hsl(140, 80%, 45%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -318,10 +318,10 @@ thead th {
     user-select: none;
 }
 tbody tr {
-    border-bottom: 1px solid hsla(220, 15%, 20%, 0.3);
+    border-bottom: 1px solid var(--border-subtle);
     transition: background var(--transition-fast);
 }
-tbody tr:hover { background: hsla(210, 100%, 55%, 0.04); }
+tbody tr:hover { background: hsla(150, 80%, 30%, 0.04); }
 tbody td {
     padding: 12px 16px;
     color: var(--text-primary);

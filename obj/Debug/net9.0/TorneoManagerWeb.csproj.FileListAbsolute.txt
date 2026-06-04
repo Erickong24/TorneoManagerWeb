@@ -49,3 +49,5 @@ C:\Users\usuario\Documents\base de datos\ProyectoBaseDeDatos\TorneoManagerWeb\ob
 C:\Users\usuario\Documents\base de datos\ProyectoBaseDeDatos\TorneoManagerWeb\obj\Debug\net9.0\compressed\l1javdp2f2-02mtaicpcm.gz
 C:\Users\usuario\Documents\base de datos\ProyectoBaseDeDatos\TorneoManagerWeb\obj\Debug\net9.0\compressed\btk5pusonb-y9kh7kjn74.gz
 C:\Users\usuario\Documents\base de datos\ProyectoBaseDeDatos\TorneoManagerWeb\obj\Debug\net9.0\compressed\vso70r8mrd-bxdl4gigh9.gz
+C:\Users\usuario\Documents\base de datos\ProyectoBaseDeDatos\TorneoManagerWeb\obj\Debug\net9.0\TorneoManagerWeb.sourcelink.json
+C:\Users\usuario\Documents\base de datos\ProyectoBaseDeDatos\TorneoManagerWeb\obj\Debug\net9.0\compressed\l1javdp2f2-icep93nvex.gz

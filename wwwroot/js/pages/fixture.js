@@ -148,10 +148,10 @@ window.fixturePage = {
                             
                             <div class="match-actions" style="display:flex; flex-direction:column; gap:8px; min-width: 140px;">
                                 ${!esJugado ? `
-                                    <button class="btn btn-sm btn-success btn-resultado" data-id="${p.idPartido}">⚽ Resultado</button>
+                                    <button class="btn btn-sm btn-success btn-resultado" data-id="${p.idPartido}">⚽ Resultado / Incidencias</button>
                                     <button class="btn btn-sm btn-ghost btn-reprogramar" data-id="${p.idPartido}">📅 Reprogramar</button>
                                 ` : `
-                                    <button class="btn btn-sm btn-ghost btn-incidencias" data-id="${p.idPartido}">📋 Goles/Tarjetas</button>
+                                    <button class="btn btn-sm btn-ghost btn-resultado" data-id="${p.idPartido}">📋 Ver/Editar Detalles</button>
                                 `}
                             </div>
                         </div>
@@ -169,9 +169,6 @@ window.fixturePage = {
             // Setup listeners
             document.querySelectorAll('.btn-resultado').forEach(btn => {
                 btn.addEventListener('click', (e) => this.showResultadoModal(e.target.dataset.id));
-            });
-            document.querySelectorAll('.btn-incidencias').forEach(btn => {
-                btn.addEventListener('click', (e) => this.showIncidenciasModal(e.target.dataset.id));
             });
             document.querySelectorAll('.btn-reprogramar').forEach(btn => {
                 btn.addEventListener('click', (e) => this.showReprogramarModal(e.target.dataset.id));
@@ -277,37 +274,214 @@ window.fixturePage = {
     async showResultadoModal(idPartido) {
         try {
             const p = await api.get(`/partidos/${idPartido}`);
-            
-            const content = `
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h4>${p.nombreLocal} vs ${p.nombreVisitante}</h4>
-                    <p style="color:var(--text-secondary); font-size:13px">Jornada ${p.jornada || '-'} | ${UI.formatDate(p.fecha)}</p>
-                </div>
-                
-                <form id="resultado-form">
-                    <div style="display:flex; justify-content:center; align-items:center; gap:20px;">
-                        <div style="text-align:center;">
-                            <label class="form-label">${p.nombreLocal}</label>
-                            <input type="number" id="r-goles-local" class="form-control" style="font-size:24px; text-align:center; width:80px" min="0" value="0" required>
-                        </div>
-                        <div style="font-size:24px; font-weight:bold; margin-top:20px;">-</div>
-                        <div style="text-align:center;">
-                            <label class="form-label">${p.nombreVisitante}</label>
-                            <input type="number" id="r-goles-visit" class="form-control" style="font-size:24px; text-align:center; width:80px" min="0" value="0" required>
-                        </div>
+            const [goles, tarjetas, jugadoresLocal, jugadoresVisitante] = await Promise.all([
+                api.get(`/partidos/${idPartido}/goles`),
+                api.get(`/partidos/${idPartido}/tarjetas`),
+                api.get(`/jugadores/equipo/${p.idLocal}`),
+                api.get(`/jugadores/equipo/${p.idVisitante}`)
+            ]);
+
+            const todosJugadores = [...jugadoresLocal, ...jugadoresVisitante];
+
+            const renderModalContent = () => {
+                return `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h4>${p.nombreLocal} vs ${p.nombreVisitante}</h4>
+                        <p style="color:var(--text-secondary); font-size:13px">Jornada ${p.jornada || '-'} | ${UI.formatDate(p.fecha)}</p>
                     </div>
                     
-                    <div class="form-group" style="margin-top: 24px;">
-                        <label class="form-label">Registrado por (Usuario)</label>
-                        <input type="text" id="r-usuario" class="form-control" value="WEB_ADMIN" required>
-                    </div>
-                </form>
-            `;
+                    <form id="resultado-form" style="background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px;">
+                        <h4 style="text-align: center; margin-bottom: 16px; color: var(--accent-primary);">Resultado Final</h4>
+                        <div style="display:flex; justify-content:center; align-items:center; gap:20px;">
+                            <div style="text-align:center;">
+                                <label class="form-label">${p.nombreLocal}</label>
+                                <input type="number" id="r-goles-local" class="form-control" style="font-size:24px; text-align:center; width:80px" min="0" value="${p.golesLocal || 0}" required>
+                            </div>
+                            <div style="font-size:24px; font-weight:bold; margin-top:20px;">-</div>
+                            <div style="text-align:center;">
+                                <label class="form-label">${p.nombreVisitante}</label>
+                                <input type="number" id="r-goles-visit" class="form-control" style="font-size:24px; text-align:center; width:80px" min="0" value="${p.golesVisitante || 0}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label">Registrado por (Usuario)</label>
+                            <input type="text" id="r-usuario" class="form-control" value="WEB_ADMIN" required>
+                        </div>
+                    </form>
 
-            UI.showModal('Registrar Resultado', content, [
+                    <div class="grid-2" style="grid-template-columns: 1.2fr 1fr; gap: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <!-- Listado de Incidencias -->
+                        <div>
+                            <h4 style="margin-bottom:12px; border-bottom:2px solid var(--accent-primary); padding-bottom:6px;">Línea de Tiempo del Partido</h4>
+                            <div id="incidencias-lista" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                                ${goles.length === 0 && tarjetas.length === 0 ? `
+                                    <div class="empty-state" style="padding:20px;">
+                                        <div class="empty-state-icon" style="font-size:24px;">⚽</div>
+                                        <div class="empty-state-text" style="font-size:13px;">No hay incidencias registradas en este partido</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${[
+                                    ...goles.map(g => ({ ...g, itemType: 'gol' })),
+                                    ...tarjetas.map(t => ({ ...t, itemType: 'tarjeta' }))
+                                ]
+                                .sort((a, b) => (a.minuto || 0) - (b.minuto || 0))
+                                .map(item => {
+                                    if (item.itemType === 'gol') {
+                                        const jugador = todosJugadores.find(j => j.idJugador === item.idJugador);
+                                        const esLocal = jugadoresLocal.some(j => j.idJugador === item.idJugador);
+                                        return `
+                                            <div style="display:flex; justify-content:${esLocal ? 'flex-start' : 'flex-end'}; width:100%;">
+                                                <div style="background: hsla(150, 80%, 30%, 0.08); border-left: 4px solid var(--accent-success); padding: 8px 12px; border-radius: var(--radius-md); font-size:13px; max-width: 90%;">
+                                                    <strong>${item.minuto}'</strong> ⚽ Gol (${item.tipo}) - ${jugador ? `${jugador.nombre} ${jugador.apellido}` : 'Jugador Desconocido'}
+                                                </div>
+                                            </div>
+                                        `;
+                                    } else {
+                                        const jugador = todosJugadores.find(j => j.idJugador === item.idJugador);
+                                        const esLocal = jugadoresLocal.some(j => j.idJugador === item.idJugador);
+                                        const esRoja = item.tipo === 'ROJA';
+                                        return `
+                                            <div style="display:flex; justify-content:${esLocal ? 'flex-start' : 'flex-end'}; width:100%;">
+                                                <div style="background: ${esRoja ? 'hsla(0, 80%, 60%, 0.08)' : 'hsla(40, 95%, 55%, 0.08)'}; border-left: 4px solid ${esRoja ? 'var(--accent-danger)' : 'var(--accent-warning)'}; padding: 8px 12px; border-radius: var(--radius-md); font-size:13px; max-width: 90%;">
+                                                    <strong>${item.minuto}'</strong> 🟨 Tarjeta ${item.tipo} - ${jugador ? `${jugador.nombre} ${jugador.apellido}` : 'Jugador Desconocido'}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Formularios de Registro -->
+                        <div style="display:flex; flex-direction:column; gap:16px;">
+                            <!-- Formulario Registrar Gol -->
+                            <div class="card" style="padding: 14px; background: var(--bg-secondary);">
+                                <h4 style="margin-bottom:10px; font-size:14px; color: var(--accent-primary);">⚽ Registrar Gol</h4>
+                                <form id="form-add-gol" onsubmit="return false;">
+                                    <div class="form-group" style="margin-bottom:8px;">
+                                        <label class="form-label" style="font-size:11px;">Jugador</label>
+                                        <select id="gol-jugador" class="form-control" style="padding:6px; font-size:12px;" required>
+                                            <option value="">Seleccione...</option>
+                                            <optgroup label="${p.nombreLocal} (Local)">
+                                                ${jugadoresLocal.map(j => `<option value="${j.idJugador}">${j.nombre} ${j.apellido} (#${j.dorsal || ''})</option>`).join('')}
+                                            </optgroup>
+                                            <optgroup label="${p.nombreVisitante} (Visitante)">
+                                                ${jugadoresVisitante.map(j => `<option value="${j.idJugador}">${j.nombre} ${j.apellido} (#${j.dorsal || ''})</option>`).join('')}
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="form-row" style="gap:8px; margin-bottom:8px;">
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label class="form-label" style="font-size:11px;">Minuto</label>
+                                            <input type="number" id="gol-minuto" class="form-control" style="padding:6px; font-size:12px;" min="1" max="120" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label class="form-label" style="font-size:11px;">Tipo</label>
+                                            <select id="gol-tipo" class="form-control" style="padding:6px; font-size:12px;">
+                                                <option value="NORMAL">Normal</option>
+                                                <option value="PENAL">Penal</option>
+                                                <option value="AUTOGOL">Autogol</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" id="btn-save-gol" style="width:100%; justify-content:center;">Guardar Gol</button>
+                                </form>
+                            </div>
+
+                            <!-- Formulario Registrar Tarjeta -->
+                            <div class="card" style="padding: 14px; background: var(--bg-secondary);">
+                                <h4 style="margin-bottom:10px; font-size:14px; color: var(--accent-primary);">🟨 Registrar Tarjeta</h4>
+                                <form id="form-add-tarjeta" onsubmit="return false;">
+                                    <div class="form-group" style="margin-bottom:8px;">
+                                        <label class="form-label" style="font-size:11px;">Jugador</label>
+                                        <select id="tarjeta-jugador" class="form-control" style="padding:6px; font-size:12px;" required>
+                                            <option value="">Seleccione...</option>
+                                            <optgroup label="${p.nombreLocal} (Local)">
+                                                ${jugadoresLocal.map(j => `<option value="${j.idJugador}">${j.nombre} ${j.apellido} (#${j.dorsal || ''})</option>`).join('')}
+                                            </optgroup>
+                                            <optgroup label="${p.nombreVisitante} (Visitante)">
+                                                ${jugadoresVisitante.map(j => `<option value="${j.idJugador}">${j.nombre} ${j.apellido} (#${j.dorsal || ''})</option>`).join('')}
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="form-row" style="gap:8px; margin-bottom:8px;">
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label class="form-label" style="font-size:11px;">Minuto</label>
+                                            <input type="number" id="tarjeta-minuto" class="form-control" style="padding:6px; font-size:12px;" min="1" max="120" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label class="form-label" style="font-size:11px;">Color</label>
+                                            <select id="tarjeta-tipo" class="form-control" style="padding:6px; font-size:12px;">
+                                                <option value="AMARILLA">Amarilla</option>
+                                                <option value="ROJA">Roja</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" id="btn-save-tarjeta" style="width:100%; justify-content:center;">Guardar Tarjeta</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const setupModalListeners = () => {
+                document.getElementById('btn-save-gol').addEventListener('click', async () => {
+                    const form = document.getElementById('form-add-gol');
+                    if (!form.reportValidity()) return;
+
+                    const idJugador = parseInt(document.getElementById('gol-jugador').value);
+                    const data = {
+                        idJugador: idJugador,
+                        minuto: parseInt(document.getElementById('gol-minuto').value),
+                        tipo: document.getElementById('gol-tipo').value
+                    };
+
+                    try {
+                        await api.post(`/partidos/${idPartido}/goles`, data);
+                        UI.toast('Gol registrado correctamente', 'success');
+                        
+                        const esLocal = jugadoresLocal.some(j => j.idJugador === idJugador);
+                        if(esLocal) {
+                            const inLocal = document.getElementById('r-goles-local');
+                            inLocal.value = parseInt(inLocal.value) + 1;
+                        } else {
+                            const inVisit = document.getElementById('r-goles-visit');
+                            inVisit.value = parseInt(inVisit.value) + 1;
+                        }
+
+                        this.showResultadoModal(idPartido); // recargar modal
+                    } catch (error) {
+                        UI.toast(`Error al guardar gol: ${error.message}`, 'error');
+                    }
+                });
+
+                document.getElementById('btn-save-tarjeta').addEventListener('click', async () => {
+                    const form = document.getElementById('form-add-tarjeta');
+                    if (!form.reportValidity()) return;
+
+                    const data = {
+                        idJugador: parseInt(document.getElementById('tarjeta-jugador').value),
+                        minuto: parseInt(document.getElementById('tarjeta-minuto').value),
+                        tipo: document.getElementById('tarjeta-tipo').value
+                    };
+
+                    try {
+                        await api.post(`/partidos/${idPartido}/tarjetas`, data);
+                        UI.toast('Tarjeta registrada correctamente', 'success');
+                        this.showResultadoModal(idPartido); // recargar modal
+                    } catch (error) {
+                        UI.toast(`Error al guardar tarjeta: ${error.message}`, 'error');
+                    }
+                });
+            };
+
+            UI.showModal('Registrar Resultado e Incidencias', renderModalContent(), [
                 { text: 'Cancelar', class: 'btn-ghost' },
                 { 
-                    text: 'Confirmar y Finalizar Partido', 
+                    text: p.estado === 'JUGADO' ? 'Actualizar Resultado' : 'Confirmar y Finalizar Partido', 
                     class: 'btn-primary',
                     onClick: async () => {
                         const form = document.getElementById('resultado-form');
@@ -331,6 +505,9 @@ window.fixturePage = {
                     }
                 }
             ]);
+            
+            setupModalListeners();
+
         } catch (error) {
             UI.toast('Error cargando datos del partido', 'error');
         }
@@ -376,19 +553,5 @@ window.fixturePage = {
                 }
             }
         ]);
-    },
-    
-    async showIncidenciasModal(idPartido) {
-        // Un modal complejo que contiene pestañas (Goles / Tarjetas)
-        // Por brevedad, mostraremos un placeholder indicando que aquí iría el formulario de goles/tarjetas
-        const content = `
-            <div style="text-align:center; padding: 20px;">
-                <p>Las APIs para Goles y Tarjetas están listas:</p>
-                <code style="display:block; padding:10px; background:var(--bg-input); margin:10px 0;">POST /api/partidos/${idPartido}/goles</code>
-                <code style="display:block; padding:10px; background:var(--bg-input); margin:10px 0;">POST /api/partidos/${idPartido}/tarjetas</code>
-                <p>La lógica de inserción y las vistas V_GOLEADORES y V_FAIR_PLAY se actualizarán automáticamente.</p>
-            </div>
-        `;
-        UI.showModal('Gestión de Incidencias', content);
     }
 };
