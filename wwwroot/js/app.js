@@ -10,7 +10,10 @@ const App = {
         jugadores: null,
         fixture: null,
         proximos: null,
-        reportes: null
+        reportes: null,
+        sedes: null,
+        arbitros: null,
+        auditoria: null
     },
     
     currentPage: null,

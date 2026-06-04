@@ -46,17 +46,59 @@ public class SedeRepositorio : ISedeRepositorio
         return Convert.ToInt32(cmd.Parameters["id"].Value.ToString());
     }
 
-    public void Actualizar(Sede sede)
+    public void Actualizar(Sede Sede)
     {
         using var conn = _db.GetConnection();
         const string sql = @"UPDATE SEDE SET nombre = :nombre, direccion = :direccion, 
                              ciudad = :ciudad, activo = :activo WHERE id_sede = :id";
         using var cmd = new OracleCommand(sql, conn);
-        cmd.Parameters.Add(new OracleParameter("nombre", sede.Nombre));
-        cmd.Parameters.Add(new OracleParameter("direccion", (object?)sede.Direccion ?? DBNull.Value));
-        cmd.Parameters.Add(new OracleParameter("ciudad", (object?)sede.Ciudad ?? DBNull.Value));
-        cmd.Parameters.Add(new OracleParameter("activo", sede.Activo));
-        cmd.Parameters.Add(new OracleParameter("id", sede.IdSede));
+        cmd.Parameters.Add(new OracleParameter("nombre", Sede.Nombre));
+        cmd.Parameters.Add(new OracleParameter("direccion", (object?)Sede.Direccion ?? DBNull.Value));
+        cmd.Parameters.Add(new OracleParameter("ciudad", (object?)Sede.Ciudad ?? DBNull.Value));
+        cmd.Parameters.Add(new OracleParameter("activo", Sede.Activo));
+        cmd.Parameters.Add(new OracleParameter("id", Sede.IdSede));
+        cmd.ExecuteNonQuery();
+    }
+
+    public List<SedeBloqueo> ListarBloqueos(int idSede)
+    {
+        var lista = new List<SedeBloqueo>();
+        using var conn = _db.GetConnection();
+        const string sql = "SELECT * FROM SEDE_BLOQUEO WHERE id_sede = :id_sede ORDER BY fecha_bloqueada DESC";
+        using var cmd = new OracleCommand(sql, conn);
+        cmd.Parameters.Add(new OracleParameter("id_sede", idSede));
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            lista.Add(new SedeBloqueo
+            {
+                IdBloqueo = Convert.ToInt32(reader["id_bloqueo"]),
+                IdSede = Convert.ToInt32(reader["id_sede"]),
+                FechaBloqueada = Convert.ToDateTime(reader["fecha_bloqueada"]),
+                Motivo = reader["motivo"] == DBNull.Value ? null : reader["motivo"].ToString()
+            });
+        }
+        return lista;
+    }
+
+    public void InsertarBloqueo(SedeBloqueo bloqueo)
+    {
+        using var conn = _db.GetConnection();
+        const string sql = @"INSERT INTO SEDE_BLOQUEO (id_sede, fecha_bloqueada, motivo) 
+                             VALUES (:id_sede, :fecha, :motivo)";
+        using var cmd = new OracleCommand(sql, conn);
+        cmd.Parameters.Add(new OracleParameter("id_sede", bloqueo.IdSede));
+        cmd.Parameters.Add(new OracleParameter("fecha", bloqueo.FechaBloqueada));
+        cmd.Parameters.Add(new OracleParameter("motivo", (object?)bloqueo.Motivo ?? DBNull.Value));
+        cmd.ExecuteNonQuery();
+    }
+
+    public void EliminarBloqueo(int idBloqueo)
+    {
+        using var conn = _db.GetConnection();
+        const string sql = "DELETE FROM SEDE_BLOQUEO WHERE id_bloqueo = :id";
+        using var cmd = new OracleCommand(sql, conn);
+        cmd.Parameters.Add(new OracleParameter("id", idBloqueo));
         cmd.ExecuteNonQuery();
     }
 }

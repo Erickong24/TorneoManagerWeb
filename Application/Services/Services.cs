@@ -11,6 +11,9 @@ public class TorneoService
     public Torneo? Obtener(int id) => _repo.Obtener(id);
     public void Guardar(Torneo t) { if (t.IdTorneo == 0) _repo.Insertar(t); else _repo.Actualizar(t); }
     public void Eliminar(int id) => _repo.Eliminar(id);
+    public List<AscensoDescenso> ListarAscensosDescensos() => _repo.ListarAscensosDescensos();
+    public void RegistrarAscensoDescenso(AscensoDescenso ad) => _repo.InsertarAscensoDescenso(ad);
+    public void EliminarAscensoDescenso(int id) => _repo.EliminarAscensoDescenso(id);
 }
 
 public class EquipoService
@@ -61,6 +64,8 @@ public class ReporteService
     public List<Goleador> Goleadores(int idTorneo) => _repo.ObtenerGoleadores(idTorneo);
     public List<SancionJugador> Sancionados(int idTorneo) => _repo.ObtenerSancionados(idTorneo);
     public List<FairPlayEntry> FairPlay(int idTorneo) => _repo.ObtenerFairPlay(idTorneo);
+    public List<AuditoriaPartido> ListarAuditorias() => _repo.ListarAuditorias();
+    public List<EstadisticaJugadorSummary> ObtenerEstadisticasAvanzadas(int idTorneo) => _repo.ObtenerEstadisticasAvanzadas(idTorneo);
 }
 
 public class CalendarioService
@@ -87,6 +92,9 @@ public class SedeService
     public SedeService(ISedeRepositorio repo) => _repo = repo;
     public List<Sede> Listar() => _repo.Listar();
     public int Guardar(Sede s) { if (s.IdSede == 0) return _repo.Insertar(s); _repo.Actualizar(s); return s.IdSede; }
+    public List<SedeBloqueo> ListarBloqueos(int idSede) => _repo.ListarBloqueos(idSede);
+    public void GuardarBloqueo(SedeBloqueo b) => _repo.InsertarBloqueo(b);
+    public void EliminarBloqueo(int id) => _repo.EliminarBloqueo(id);
 }
 
 public class EstadisticaService
@@ -96,6 +104,10 @@ public class EstadisticaService
     public void RegistrarEvento(PartidoEventoJugador e) => _repo.RegistrarEventoJugador(e);
     public List<PartidoEventoJugador> ListarEventos(int idPartido) => _repo.ListarEventosPorPartido(idPartido);
     public List<RachaEquipo> ListarRachas(int idTorneo) => _repo.ListarRachas(idTorneo);
+    public void RegistrarPartidoJugador(PartidoJugador alignment) => _repo.RegistrarPartidoJugador(alignment);
+    public List<PartidoJugador> ListarJugadoresPorPartido(int idPartido) => _repo.ListarJugadoresPorPartido(idPartido);
+    public void LimpiarDetallesPartido(int idPartido) { _repo.LimpiarAlineacion(idPartido); _repo.LimpiarEventos(idPartido); }
+    public void RegistrarRacha(RachaEquipo racha) => _repo.RegistrarRacha(racha);
 }
 
 public class ApelacionService

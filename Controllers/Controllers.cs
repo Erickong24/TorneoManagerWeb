@@ -27,6 +27,15 @@ public class TorneosController : ControllerBase
 
     [HttpDelete("{id}")]
     public IActionResult Eliminar(int id) { try { _svc.Eliminar(id); return Ok(new { message = "Torneo desactivado" }); } catch (Exception ex) { _log.LogError(ex, "Error eliminando torneo {Id}", id); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpGet("movimientos")]
+    public IActionResult ListarAscensosDescensos() { try { return Ok(_svc.ListarAscensosDescensos()); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpPost("movimientos")]
+    public IActionResult RegistrarAscensoDescenso([FromBody] AscensoDescenso ad) { try { _svc.RegistrarAscensoDescenso(ad); return Ok(new { message = "Movimiento registrado" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpDelete("movimientos/{id}")]
+    public IActionResult EliminarAscensoDescenso(int id) { try { _svc.EliminarAscensoDescenso(id); return Ok(new { message = "Movimiento eliminado" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
 }
 
 [ApiController]
@@ -150,6 +159,9 @@ public class PartidosController : ControllerBase
 
     [HttpGet("{id}/reprogramaciones")]
     public IActionResult ListarReprogramaciones(int id) { try { return Ok(_cal.ListarReprogramaciones(id)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpPost("{id}/arbitrajes")]
+    public IActionResult RegistrarArbitraje(int id, [FromBody] PartidoArbitraje a) { try { a.IdPartido = id; _cal.RegistrarArbitraje(a); return Ok(new { message = "Arbitraje registrado" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
 }
 
 // DTOs for requests
@@ -176,6 +188,12 @@ public class ReportesController : ControllerBase
 
     [HttpGet("{idTorneo}/fairplay")]
     public IActionResult FairPlay(int idTorneo) { try { return Ok(_svc.FairPlay(idTorneo)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpGet("auditorias")]
+    public IActionResult ListarAuditorias() { try { return Ok(_svc.ListarAuditorias()); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpGet("{idTorneo}/avanzadas")]
+    public IActionResult ObtenerAvanzadas(int idTorneo) { try { return Ok(_svc.ObtenerEstadisticasAvanzadas(idTorneo)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
 }
 
 [ApiController]
@@ -212,6 +230,15 @@ public class SedesController : ControllerBase
 
     [HttpPut("{id}")]
     public IActionResult Actualizar(int id, [FromBody] Sede sede) { try { sede.IdSede = id; _svc.Guardar(sede); return Ok(new { message = "Sede actualizada" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpGet("{id}/bloqueos")]
+    public IActionResult ListarBloqueos(int id) { try { return Ok(_svc.ListarBloqueos(id)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpPost("{id}/bloqueos")]
+    public IActionResult GuardarBloqueo(int id, [FromBody] SedeBloqueo b) { try { b.IdSede = id; _svc.GuardarBloqueo(b); return Ok(new { message = "Bloqueo registrado" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpDelete("bloqueos/{id}")]
+    public IActionResult EliminarBloqueo(int id) { try { _svc.EliminarBloqueo(id); return Ok(new { message = "Bloqueo eliminado" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
 }
 
 [ApiController]
@@ -230,4 +257,62 @@ public class ApelacionesController : ControllerBase
 
     [HttpPut("{id}")]
     public IActionResult Resolver(int id, [FromBody] Apelacion apelacion) { try { apelacion.IdApelacion = id; _svc.Resolver(apelacion); return Ok(new { message = "Apelación resuelta" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+}
+
+[ApiController]
+[Route("api/[controller]")]
+public class EstadisticasController : ControllerBase
+{
+    private readonly EstadisticaService _svc;
+    private readonly ILogger<EstadisticasController> _log;
+    public EstadisticasController(EstadisticaService svc, ILogger<EstadisticasController> log) { _svc = svc; _log = log; }
+
+    [HttpGet("rachas/{idTorneo}")]
+    public IActionResult ListarRachas(int idTorneo) { try { return Ok(_svc.ListarRachas(idTorneo)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpGet("partido/{idPartido}/eventos")]
+    public IActionResult ListarEventos(int idPartido) { try { return Ok(_svc.ListarEventos(idPartido)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpGet("partido/{idPartido}/alineacion")]
+    public IActionResult ListarAlineacion(int idPartido) { try { return Ok(_svc.ListarJugadoresPorPartido(idPartido)); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+
+    [HttpPost("partido/{idPartido}/detalles")]
+    public IActionResult GuardarDetallesPartido(int idPartido, [FromBody] GuardarDetallesRequest req)
+    {
+        try
+        {
+            _svc.LimpiarDetallesPartido(idPartido);
+            
+            if (req.Alineaciones != null)
+            {
+                foreach (var pj in req.Alineaciones)
+                {
+                    pj.IdPartido = idPartido;
+                    _svc.RegistrarPartidoJugador(pj);
+                }
+            }
+            
+            if (req.Eventos != null)
+            {
+                foreach (var ev in req.Eventos)
+                {
+                    ev.IdPartido = idPartido;
+                    _svc.RegistrarEvento(ev);
+                }
+            }
+
+            return Ok(new { message = "Detalles y alineaciones guardados" });
+        }
+        catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); }
+    }
+
+    [HttpPost("racha")]
+    public IActionResult RegistrarRacha([FromBody] RachaEquipo racha) { try { _svc.RegistrarRacha(racha); return Ok(new { message = "Racha registrada" }); } catch (Exception ex) { _log.LogError(ex, "Error"); return StatusCode(500, new { error = ex.Message }); } }
+}
+
+
+public class GuardarDetallesRequest
+{
+    public List<PartidoJugador> Alineaciones { get; set; } = new();
+    public List<PartidoEventoJugador> Eventos { get; set; } = new();
 }

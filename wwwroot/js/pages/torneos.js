@@ -9,7 +9,10 @@ window.torneosPage = {
                     <h1>Torneos</h1>
                     <p>Gestión de campeonatos y ligas</p>
                 </div>
-                <button class="btn btn-primary" id="btn-nuevo-torneo">➕ Nuevo Torneo</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-success" id="btn-ascenso-descenso">⚖️ Ascensos y Descensos</button>
+                    <button class="btn btn-primary" id="btn-nuevo-torneo">➕ Nuevo Torneo</button>
+                </div>
             </div>
             
             <div class="card">
@@ -20,6 +23,7 @@ window.torneosPage = {
         `;
 
         document.getElementById('btn-nuevo-torneo').addEventListener('click', () => this.showFormModal());
+        document.getElementById('btn-ascenso-descenso').addEventListener('click', () => this.showAscensoDescensoModal());
 
         await this.loadData();
     },
@@ -201,5 +205,134 @@ window.torneosPage = {
                 }
             }
         ]);
+    },
+
+    async showAscensoDescensoModal() {
+        try {
+            // Load all tournaments and teams to populate select inputs
+            const torneos = await api.get('/torneos');
+            
+            let allTeams = [];
+            for (const t of torneos) {
+                const teams = await api.get(`/equipos/torneo/${t.idTorneo}`);
+                allTeams.push(...teams);
+            }
+
+            const loadAndRenderMovimientos = async (modalBody) => {
+                const movimientos = await api.get('/torneos/movimientos');
+                
+                let html = `
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <!-- Registrar Nuevo Movimiento -->
+                        <div class="card" style="padding:14px; border:1px solid var(--border-strong); background:var(--bg-secondary);">
+                            <h4 style="margin-top:0; margin-bottom:10px; font-size:14px; color:var(--accent-primary);">⚖️ Registrar Movimiento</h4>
+                            <form id="form-nuevo-movimiento" onsubmit="return false;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Equipo *</label>
+                                        <select id="ad-equipo" class="form-control" required style="height:38px;">
+                                            <option value="">-- Seleccionar Equipo --</option>
+                                            ${allTeams.map(e => `<option value="${e.idEquipo}">${e.nombre} (${e.ciudad || 'Sin ciudad'})</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Movimiento *</label>
+                                        <select id="ad-movimiento" class="form-control" required style="height:38px;">
+                                            <option value="ASCENSO">ASCENSO</option>
+                                            <option value="DESCENSO">DESCENSO</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row" style="margin-top:10px;">
+                                    <div class="form-group">
+                                        <label class="form-label">Torneo Origen *</label>
+                                        <select id="ad-origen" class="form-control" required style="height:38px;">
+                                            <option value="">-- Torneo Origen --</option>
+                                            ${torneos.map(t => `<option value="${t.idTorneo}">${t.nombre}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Torneo Destino *</label>
+                                        <select id="ad-destino" class="form-control" required style="height:38px;">
+                                            <option value="">-- Torneo Destino --</option>
+                                            ${torneos.map(t => `<option value="${t.idTorneo}">${t.nombre}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" id="btn-guardar-movimiento" style="width:100%; margin-top:12px; justify-content:center;">Registrar Movimiento</button>
+                            </form>
+                        </div>
+
+                        <div>
+                            <h4 style="margin-top:0; margin-bottom:10px; border-bottom:2px solid var(--accent-primary); padding-bottom:6px;">Historial de Movimientos</h4>
+                            <div style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+                                ${movimientos.length === 0 ? `
+                                    <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px 0;">No hay movimientos registrados.</p>
+                                ` : movimientos.map(m => `
+                                    <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary); margin-bottom:0;">
+                                        <div>
+                                            <strong style="color:var(--accent-primary); font-size:14px;">${m.nombreEquipo}</strong>
+                                            <span class="badge ${m.movimiento === 'ASCENSO' ? 'badge-success' : 'badge-danger'}" style="margin-left:8px;">${m.movimiento}</span>
+                                            <p style="font-size:12px; margin-top:2px; margin-bottom:0; color:var(--text-muted);">
+                                                Desde: <strong>${m.nombreTorneoOrigen}</strong> hacia <strong>${m.nombreTorneoDestino}</strong>
+                                            </p>
+                                        </div>
+                                        <button class="btn btn-sm btn-ghost btn-delete-movimiento" data-id="${m.idRegistro}" style="color:var(--accent-danger); border:none; background:transparent; cursor:pointer;">🗑️</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modalBody.innerHTML = html;
+
+                // Event Listeners inside modal
+                document.getElementById('btn-guardar-movimiento').addEventListener('click', async () => {
+                    const form = document.getElementById('form-nuevo-movimiento');
+                    if (!form.reportValidity()) return;
+
+                    const data = {
+                        idEquipo: parseInt(document.getElementById('ad-equipo').value),
+                        idTorneoOrigen: parseInt(document.getElementById('ad-origen').value),
+                        idTorneoDestino: parseInt(document.getElementById('ad-destino').value),
+                        movimiento: document.getElementById('ad-movimiento').value
+                    };
+
+                    try {
+                        await api.post('/torneos/movimientos', data);
+                        UI.toast('Movimiento registrado exitosamente', 'success');
+                        await loadAndRenderMovimientos(modalBody);
+                    } catch (error) {
+                        UI.toast(`Error: ${error.message}`, 'error');
+                    }
+                });
+
+                document.querySelectorAll('.btn-delete-movimiento').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                        if (confirm('¿Estás seguro de que deseas eliminar este movimiento?')) {
+                            try {
+                                await api.delete(`/torneos/movimientos/${id}`);
+                                UI.toast('Movimiento eliminado', 'success');
+                                await loadAndRenderMovimientos(modalBody);
+                            } catch (error) {
+                                UI.toast(`Error: ${error.message}`, 'error');
+                            }
+                        }
+                    });
+                });
+            };
+
+            UI.showModal('Ascensos y Descensos de Equipos', `<div id="movimientos-modal-body">Cargando...</div>`, [
+                { text: 'Cerrar', class: 'btn-ghost' }
+            ]);
+
+            const modalBody = document.getElementById('movimientos-modal-body');
+            await loadAndRenderMovimientos(modalBody);
+
+        } catch (error) {
+            UI.toast(`Error: ${error.message}`, 'error');
+        }
     }
 };

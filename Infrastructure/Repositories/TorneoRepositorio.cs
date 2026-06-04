@@ -100,6 +100,59 @@ public class TorneoRepositorio : ITorneoRepositorio
         _logger.LogInformation("Torneo {Id} desactivado", id);
     }
 
+    public List<AscensoDescenso> ListarAscensosDescensos()
+    {
+        var lista = new List<AscensoDescenso>();
+        using var conn = _db.GetConnection();
+        const string sql = @"SELECT ad.*, 
+                                    to_org.nombre as nombre_torneo_origen, 
+                                    to_dst.nombre as nombre_torneo_destino, 
+                                    eq.nombre as nombre_equipo
+                             FROM ASCENSO_DESCENSO ad
+                             JOIN TORNEO to_org ON ad.id_torneo_origen = to_org.id_torneo
+                             JOIN TORNEO to_dst ON ad.id_torneo_destino = to_dst.id_torneo
+                             JOIN EQUIPO eq ON ad.id_equipo = eq.id_equipo";
+        using var cmd = new OracleCommand(sql, conn);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            lista.Add(new AscensoDescenso
+            {
+                IdRegistro = Convert.ToInt32(reader["id_registro"]),
+                IdTorneoOrigen = Convert.ToInt32(reader["id_torneo_origen"]),
+                IdTorneoDestino = Convert.ToInt32(reader["id_torneo_destino"]),
+                IdEquipo = Convert.ToInt32(reader["id_equipo"]),
+                Movimiento = reader["movimiento"].ToString()!,
+                NombreTorneoOrigen = reader["nombre_torneo_origen"].ToString(),
+                NombreTorneoDestino = reader["nombre_torneo_destino"].ToString(),
+                NombreEquipo = reader["nombre_equipo"].ToString()
+            });
+        }
+        return lista;
+    }
+
+    public void InsertarAscensoDescenso(AscensoDescenso ad)
+    {
+        using var conn = _db.GetConnection();
+        const string sql = @"INSERT INTO ASCENSO_DESCENSO (id_torneo_origen, id_torneo_destino, id_equipo, movimiento) 
+                             VALUES (:id_torneo_origen, :id_torneo_destino, :id_equipo, :movimiento)";
+        using var cmd = new OracleCommand(sql, conn);
+        cmd.Parameters.Add(new OracleParameter("id_torneo_origen", ad.IdTorneoOrigen));
+        cmd.Parameters.Add(new OracleParameter("id_torneo_destino", ad.IdTorneoDestino));
+        cmd.Parameters.Add(new OracleParameter("id_equipo", ad.IdEquipo));
+        cmd.Parameters.Add(new OracleParameter("movimiento", ad.Movimiento));
+        cmd.ExecuteNonQuery();
+    }
+
+    public void EliminarAscensoDescenso(int id)
+    {
+        using var conn = _db.GetConnection();
+        const string sql = "DELETE FROM ASCENSO_DESCENSO WHERE id_registro = :id";
+        using var cmd = new OracleCommand(sql, conn);
+        cmd.Parameters.Add(new OracleParameter("id", id));
+        cmd.ExecuteNonQuery();
+    }
+
     private static Torneo MapTorneo(OracleDataReader reader)
     {
         return new Torneo

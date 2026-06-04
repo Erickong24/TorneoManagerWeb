@@ -9,6 +9,9 @@ public interface ITorneoRepositorio
     void Insertar(Torneo torneo);
     void Actualizar(Torneo torneo);
     void Eliminar(int id);
+    List<AscensoDescenso> ListarAscensosDescensos();
+    void InsertarAscensoDescenso(AscensoDescenso ad);
+    void EliminarAscensoDescenso(int id);
 }
 
 public interface IEquipoRepositorio
@@ -56,6 +59,8 @@ public interface IReporteRepositorio
     List<Goleador> ObtenerGoleadores(int idTorneo);
     List<SancionJugador> ObtenerSancionados(int idTorneo);
     List<FairPlayEntry> ObtenerFairPlay(int idTorneo);
+    List<AuditoriaPartido> ListarAuditorias();
+    List<EstadisticaJugadorSummary> ObtenerEstadisticasAvanzadas(int idTorneo);
 }
 
 public interface IArbitroRepositorio
@@ -70,6 +75,9 @@ public interface ISedeRepositorio
     List<Sede> Listar();
     int Insertar(Sede sede);
     void Actualizar(Sede sede);
+    List<SedeBloqueo> ListarBloqueos(int idSede);
+    void InsertarBloqueo(SedeBloqueo bloqueo);
+    void EliminarBloqueo(int idBloqueo);
 }
 
 public interface ICalendarioRepositorio
@@ -85,6 +93,11 @@ public interface IEstadisticaRepositorio
     void RegistrarEventoJugador(PartidoEventoJugador evento);
     List<PartidoEventoJugador> ListarEventosPorPartido(int idPartido);
     List<RachaEquipo> ListarRachas(int idTorneo);
+    void RegistrarPartidoJugador(PartidoJugador alignment);
+    List<PartidoJugador> ListarJugadoresPorPartido(int idPartido);
+    void LimpiarAlineacion(int idPartido);
+    void LimpiarEventos(int idPartido);
+    void RegistrarRacha(RachaEquipo racha);
 }
 
 public interface IApelacionRepositorio

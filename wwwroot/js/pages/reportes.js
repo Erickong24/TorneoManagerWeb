@@ -23,6 +23,8 @@ window.reportesPage = {
                 <button class="tab" data-target="goleadores">Goleadores</button>
                 <button class="tab" data-target="fairplay">Fair Play</button>
                 <button class="tab" data-target="sancionados">Sancionados</button>
+                <button class="tab" data-target="avanzadas">Estadísticas Avanzadas</button>
+                <button class="tab" data-target="rachas">Rachas de Equipos</button>
             </div>
 
             <div class="card" id="reportes-content">
@@ -88,7 +90,11 @@ window.reportesPage = {
         UI.showLoading(container);
 
         try {
-            const data = await api.get(`/reportes/${this.selectedTorneoId}/${tipo}`);
+            let endpoint = `/reportes/${this.selectedTorneoId}/${tipo}`;
+            if (tipo === 'rachas') {
+                endpoint = `/estadisticas/rachas/${this.selectedTorneoId}`;
+            }
+            const data = await api.get(endpoint);
             
             if (data.length === 0) {
                 UI.showEmptyState(container, `No hay datos para ${tipo.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
@@ -203,6 +209,60 @@ window.reportesPage = {
                                 <td>
                                     <button class="btn btn-sm btn-ghost btn-apelacion" data-id="${r.idSancion}" data-nombre="${r.nombreJugador}">⚖️ Apelaciones</button>
                                 </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+            } else if (tipo === 'avanzadas') {
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Jugador</th>
+                            <th>Equipo</th>
+                            <th>PJ</th>
+                            <th>Minutos</th>
+                            <th>Asistencias</th>
+                            <th>Prom. xG</th>
+                            <th>MVPs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map((r, i) => `
+                            <tr>
+                                <td>${i + 1}</td>
+                                <td style="font-weight:600">${r.nombreCompleto}</td>
+                                <td>${r.equipo}</td>
+                                <td><span class="badge badge-muted">${r.partidosJugados}</span></td>
+                                <td>${r.minutosTotales} min</td>
+                                <td>${r.asistenciasTotales}</td>
+                                <td>${r.xgPromedio.toFixed(2)}</td>
+                                <td><span class="badge badge-success">${r.mvpTotales} ⭐</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+            } else if (tipo === 'rachas') {
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Equipo</th>
+                            <th>Partidos Invicto</th>
+                            <th>Partidos Ganados</th>
+                            <th>Goles a Favor</th>
+                            <th>Goles en Contra</th>
+                            <th>Desde Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(r => `
+                            <tr>
+                                <td style="font-weight:600">${r.nombre || `Equipo #${r.idEquipo}`}</td>
+                                <td><span class="badge badge-success" style="font-size:13px;">${r.partidosInvicto}</span></td>
+                                <td><span class="badge badge-info" style="font-size:13px;">${r.partidosGanados}</span></td>
+                                <td>${r.golesFavor}</td>
+                                <td>${r.golesContra}</td>
+                                <td>${r.desdeFecha ? UI.formatDateShort(r.desdeFecha) : 'N/A'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
