@@ -539,7 +539,7 @@ END PKG_TARJETAS;
 
 -- === TRIGGERS ===
 
--- Trigger para asegurar que al crear un equipo se inicialice en la tabla de posiciones si el torneo ya empezo
+-- Trigger para asegurarme que al crear un equipo se inicialice en la tabla de posiciones si el torneo ya empezo
 CREATE OR REPLACE TRIGGER TRG_EQUIPO_INSERT
 AFTER INSERT ON EQUIPO
 FOR EACH ROW
