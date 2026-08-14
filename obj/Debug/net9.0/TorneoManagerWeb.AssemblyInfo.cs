@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TorneoManagerWeb")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+df51a2104d8b2987c50b8c4fea7eb7598fcebd37")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f749c104d1e5d35587140e897adc0786c2152e24")]
 [assembly: System.Reflection.AssemblyProductAttribute("TorneoManagerWeb")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TorneoManagerWeb")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
